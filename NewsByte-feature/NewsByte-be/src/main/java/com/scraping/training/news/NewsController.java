@@ -1,7 +1,6 @@
 package com.scraping.training.news;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +21,7 @@ public class NewsController {
     @GetMapping("/92")
     public List<NewsArticle> getNews92() {
         String url = "https://92newshd.tv/latest-news";
+        System.out.println(url);
         return newsService.getNews92(url);
     }
 
@@ -29,7 +29,8 @@ public class NewsController {
     public List<NewsArticle> getNewsByCategory92(@PathVariable String category) throws IOException {
         String baseUrl = "https://92newshd.tv/category/";
         String url = baseUrl + category + "/";
-        return newsService.getNewsByCategory92(url, 5);
+        System.out.println(url);
+        return newsService.getNewsByCategory92(url, 4);
     }
     /***************************************************************************************************************************************/
 
@@ -39,21 +40,34 @@ public class NewsController {
     }
 
     @GetMapping("/guardian/{category}")
-    public List<NewsArticle> getNewsGuardianByCategory(@PathVariable String category) throws IOException{
-        return newsService.getNewsGuardianByCategory(category);
+    public List<NewsArticle> getNewsByCategoryGuardian(@PathVariable String category) throws IOException{
+        return newsService.getNewsByCategoryGuardian(category);
     }
 
 
     /***************************************************************************************************************************************/
 
-    @GetMapping("/nyTimes")
-    public List<NewsArticle> getNewsNY() {
-        return newsService.getNewsNyTimes();
+    @GetMapping("/ary")
+    public List<NewsArticle> getNewsAry() {
+        String url = "https://arynews.tv/category/latest-blogs";
+        return newsService.getNewsAry(url,4);
     }
-    @GetMapping("/nyTimes/{category}")
-    @Async
-    public List<Docs> getNYNews(@PathVariable String category) throws IOException { //@PathVariable int page
-        return newsService.getNyTimesNews(category);
+
+    @GetMapping("/ary/{category}")
+    public List<NewsArticle> getNewsByCategoryAry(@PathVariable String category) throws IOException {
+        return newsService.getNewsByCategoryAry(category);
     }
+
+    /***************************************************************************************************************************************/
+
+//    @GetMapping("/nyTimes")
+//    public List<NewsArticle> getNewsNY() {
+//        return newsService.getNewsNyTimes();
+//    }
+//    @GetMapping("/nyTimes/{category}")
+//    @Async
+//    public List<Docs> getNYNews(@PathVariable String category) throws IOException { //@PathVariable int page
+//        return newsService.getNyTimesNews(category);
+//    }
 }
 

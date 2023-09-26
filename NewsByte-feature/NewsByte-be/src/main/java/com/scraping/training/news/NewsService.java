@@ -1,10 +1,18 @@
 package com.scraping.training.news;
 
 
+import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.List;
 import org.springframework.scheduling.annotation.Async;
 
@@ -17,6 +25,8 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
+
 @Service
 public class NewsService {
     /*****************************************************************  API KEYS *************************************************************************************/
@@ -41,7 +51,6 @@ public class NewsService {
 
     /*****************************************************************  92 NEWS *************************************************************************************/
     public List<NewsArticle> getNews92(String url){
-
         List<NewsArticle> articles = new ArrayList<>();
         try {
             Document document = Jsoup.connect(url)
@@ -110,7 +119,7 @@ public class NewsService {
         String apiUrl = "https://content.guardianapis.com/search?q=uk-news&section=uk-news&page-size="+ num + "&order-by=newest" +  "&api-key=" + apikeyGuardian ;
         try {
             NewsGuardianResponse response = restTemplate.getForObject(apiUrl,NewsGuardianResponse.class);
-
+            System.out.println(apiUrl);
             if (response != null && response.getResponse() != null &&
                     response.getResponse().getResults() != null) {
                 List<NewsGuardian> news = response.getResponse().getResults();
@@ -130,7 +139,7 @@ public class NewsService {
         return headlines;
     }
 
-    public List<NewsArticle> getNewsGuardianByCategory(String category) {
+    public List<NewsArticle> getNewsByCategoryGuardian(String category) {
         int num=30;
         List<NewsArticle> headlines = new ArrayList<>();
         String apiUrl = "https://content.guardianapis.com/search?q=" + category +
@@ -138,7 +147,7 @@ public class NewsService {
 
         try {
             NewsGuardianResponse response = restTemplate.getForObject(apiUrl,NewsGuardianResponse.class);
-
+            System.out.println(apiUrl);
             if (response != null && response.getResponse() != null &&
                     response.getResponse().getResults() != null) {
                 List<NewsGuardian> news = response.getResponse().getResults();
@@ -158,9 +167,81 @@ public class NewsService {
         return headlines;
     }
 
+/***************************************************************** ARY NEWS *************************************************************************************/
+    public List<NewsArticle> getNewsAry(String url, int clicks) {
+    List<NewsArticle> articles = new ArrayList<>();
+    System.setProperty("webdriver.chrome.driver", "chromedriver.exe");
 
-    /***************************************************************** GUARDIAN NEWS *************************************************************************************/
-    public List<NewsArticle> getNewsNyTimes() {
+    try {
+        WebDriver driver = new ChromeDriver();
+        driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+        WebDriverWait wait = new WebDriverWait(driver, 10);
+
+        JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
+        driver.get(url);
+
+        int loadMoreClicks = 0;
+
+        while (loadMoreClicks < clicks) {
+            jsExecutor.executeScript("window.scrollTo(0, document.body.scrollHeight)");
+            Thread.sleep(2000);
+
+            WebElement loadMoreButton = driver.findElement(By.cssSelector(".td-load-more-wrap > a"));
+            if (loadMoreButton != null && loadMoreButton.isDisplayed()) {
+                loadMoreButton.click();
+                wait.until(ExpectedConditions.invisibilityOf(loadMoreButton));
+                loadMoreClicks++;
+            } else {
+                break;
+            }
+        }
+        String pageSource = driver.getPageSource();
+        Document document = Jsoup.parse(pageSource);
+        Elements newsList = document.select(".td-module-container.td-category-pos-above");
+
+        if (newsList != null) {
+            for (Element news : newsList) {
+                Element titleElement = news.select("h3 > a").first();
+                if (titleElement == null || titleElement.text().isEmpty()) {
+                    titleElement = news.select(".td-image-wrap ").first();
+                }
+                String title = (titleElement != null) ? titleElement.attr("title") : "No Title Found";
+                String description = news.select(".td-excerpt").text();
+                Element link = news.select("a").first();
+                String hrefValue = link.attr("href");
+                Element span = news.select("span.entry-thumb").first();
+                String imageUrl = span.attr("data-img-url");
+                if (imageUrl.isEmpty()) {
+                    String styleAttribute = span.attr("style");
+                    int startIndex = styleAttribute.indexOf("url(");
+                    int endIndex = styleAttribute.indexOf(")");
+                    if (startIndex != -1 && endIndex != -1) {
+                        imageUrl = styleAttribute.substring(startIndex + 4, endIndex);
+                    }
+                }
+                NewsArticle newsArticle = new NewsArticle();
+                newsArticle.setUrl(hrefValue);
+                newsArticle.setTitle(title);
+                newsArticle.setUrlToImage(imageUrl);
+                articles.add(newsArticle);
+            }
+        } else {
+            System.out.println("Response is empty!!");
+        }
+    } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+    }
+
+    return articles;
+}
+    public List<NewsArticle> getNewsByCategoryAry(String category) {
+        String baseUrl = "https://arynews.tv/category/";
+        String url = baseUrl + category + "/";
+        return getNewsAry(url,4);
+    }
+
+    /***************************************************************** NEWYORK TIMES NEWS *************************************************************************************/
+   /* public List<NewsArticle> getNewsNyTimes() {
         String apiUrl = "https://api.nytimes.com/svc/mostpopular/v2/viewed/1.json" + "?api-key=" + apikeyNyTimes;
 
         // Make an HTTP GET request to the News API
@@ -174,5 +255,5 @@ public class NewsService {
         }
 
         return headlines;
-    }
+    }*/
 }
