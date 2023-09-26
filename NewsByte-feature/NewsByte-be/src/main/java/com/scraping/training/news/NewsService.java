@@ -1,6 +1,8 @@
 package com.scraping.training.news;
 
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
@@ -8,11 +10,11 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
+import java.net.URL;
+import java.util.Iterator;
 import java.util.List;
 import org.springframework.scheduling.annotation.Async;
 
@@ -169,6 +171,7 @@ public class NewsService {
 
 /***************************************************************** ARY NEWS *************************************************************************************/
     public List<NewsArticle> getNewsAry(String url, int clicks) {
+        System.out.println(url);
     List<NewsArticle> articles = new ArrayList<>();
     System.setProperty("webdriver.chrome.driver", "chromedriver.exe");
 
@@ -198,7 +201,7 @@ public class NewsService {
         String pageSource = driver.getPageSource();
         Document document = Jsoup.parse(pageSource);
         Elements newsList = document.select(".td-module-container.td-category-pos-above");
-
+        driver.quit();
         if (newsList != null) {
             for (Element news : newsList) {
                 Element titleElement = news.select("h3 > a").first();
@@ -241,19 +244,115 @@ public class NewsService {
     }
 
     /***************************************************************** NEWYORK TIMES NEWS *************************************************************************************/
-   /* public List<NewsArticle> getNewsNyTimes() {
+    public List<NewsArticle> getNewsNy() {
         String apiUrl = "https://api.nytimes.com/svc/mostpopular/v2/viewed/1.json" + "?api-key=" + apikeyNyTimes;
-
-        // Make an HTTP GET request to the News API
-        NewsApiResponse response = restTemplate.getForObject(apiUrl, NewsApiResponse.class);
+        NewsNYResponse response = restTemplate.getForObject(apiUrl, NewsNYResponse.class);
         List<NewsArticle> headlines = new ArrayList<>();
         if (response != null && response.getArticles() != null) {
-            for (NewsArticle article : response.getArticles()) {
-                NewsArticle newsArticle = getNyTimesNewsArticle(article);
+            for (NewsNyTimes article : response.getArticles()) {
+                NewsNyTimes newsNy = getNyTimesNewsArticle(article);
+
+                NewsArticle newsArticle = new NewsArticle();
+                newsArticle.setUrl(newsNy.getPageUrl());
+                newsArticle.setTitle(newsNy.getTitle());
+                newsArticle.setUrlToImage(newsNy.getImage());
+
                 headlines.add(newsArticle);
             }
         }
 
         return headlines;
-    }*/
+    }
+
+    public List<NewsArticle> getNewsByCategoryNY(String category) throws IOException {
+        int page1 = 1;
+        int page2=2;
+        String apiUrl1 = "https://api.nytimes.com/svc/search/v2/articlesearch.json?fq=news_desk:(" +category +")&page="+page1+"&api-key="+ apikeyNyTimes;
+        String apiUrl2 = "https://api.nytimes.com/svc/search/v2/articlesearch.json?fq=news_desk:(" +category +")&page="+page2+"&api-key="+ apikeyNyTimes;
+        ObjectMapper objectMapper1 = new ObjectMapper();
+
+        // Read data from the API URL
+        JsonNode rootNode1 = null;
+        try {
+            rootNode1 = objectMapper1.readTree(new URL(apiUrl1));
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
+
+//        // Extract data from the "docs" array
+        List<NYCategory> docs1 = new ArrayList<>();
+        JsonNode docsArray1 = rootNode1.path("response").path("docs");
+        docs1 = getNyTimesDocs(docsArray1, docs1);
+
+        ObjectMapper objectMapper2 = new ObjectMapper();
+
+        // Read data from the API URL
+        JsonNode rootNode2 = null;
+        try {
+            rootNode2 = objectMapper2.readTree(new URL(apiUrl2));
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
+        List<NYCategory> docs2 = new ArrayList<>();
+        JsonNode docsArray = rootNode2.path("response").path("docs");
+        docs2 = getNyTimesDocs(docsArray, docs2);
+
+        List<NewsArticle> articles = new ArrayList<>();
+        for (NYCategory docs: docs1) {
+
+            NewsArticle newsArticle = new NewsArticle();
+            newsArticle.setUrl(docs.getPageUrl());
+            newsArticle.setTitle(docs.getTitle());
+            newsArticle.setUrlToImage(docs.getImageUrl());
+            newsArticle.setPublishedAt(docs.getPub_date());
+            articles.add(newsArticle);
+        }
+
+        for (NYCategory docs: docs2) {
+
+            NewsArticle newsArticle = new NewsArticle();
+            newsArticle.setUrl(docs.getPageUrl());
+            newsArticle.setTitle(docs.getTitle());
+            newsArticle.setUrlToImage(docs.getImageUrl());
+            newsArticle.setPublishedAt(docs.getPub_date());
+            articles.add(newsArticle);
+
+        }
+        return articles;
+    }
+    private static NewsNyTimes getNyTimesNewsArticle(NewsNyTimes article) {
+        List<String> images = new ArrayList<>();
+        List<Media> media = article.getMedia();
+        String img = "";
+        for (Media mediaItem : media) {
+            List<MediaMetadata> mediaMetadata = mediaItem.getMetadata();
+            img = mediaMetadata.get(1).getUrl();
+        }
+        NewsNyTimes newsArticle = new NewsNyTimes(article.getTitle() , article.getPageUrl(), img, article.getPublished_date());
+        return newsArticle;
+    }
+    public List<NYCategory> getNyTimesDocs(JsonNode docsArray, List<NYCategory> docs){
+        for (JsonNode doc : docsArray) {
+            // Check if "multimedia" is not empty
+            if (doc.has("multimedia") && doc.get("multimedia").isArray()) {
+                // Extract desired fields
+                String abstractText = doc.path("abstract").asText();
+                String webUrl = doc.path("web_url").asText();
+                String headline = doc.path("headline").path("main").asText();
+                JsonNode multimediaArray = doc.path("multimedia");
+                String pub_date = doc.path("pub_date").asText();
+                String multimediaUrl = "";
+                // Iterate over multimedia items
+                Iterator<JsonNode> multimediaItems = multimediaArray.elements();
+                while (multimediaItems.hasNext()) {
+                    JsonNode multimediaItem = multimediaItems.next();
+                    multimediaUrl = "https://www.nytimes.com/"+multimediaItem.path("url").asText();
+
+                }
+                docs.add(new NYCategory(webUrl, headline, multimediaUrl, pub_date));
+            }
+        }
+        return docs;
+    }
+
 }

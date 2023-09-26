@@ -15,6 +15,7 @@ public class NewsArticle {
 
     public NewsArticle() {}
 
+
     public String getTitle() {
         return title;
     }

@@ -1,5 +1,5 @@
 package com.scraping.training.news;
-
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 public class NewsApiResponse {
@@ -14,17 +14,5 @@ public class NewsApiResponse {
         this.articles = articles;
     }
 
-
-    public static class NewsResponse {
-        private List<NewsArticle> results;
-
-        public List<NewsArticle> getResults() {
-            return results;
-        }
-
-        public void setResults(List<NewsArticle> results) {
-            this.results = results;
-        }
-    }
 }
 
