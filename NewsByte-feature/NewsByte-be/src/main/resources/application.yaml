@@ -1,0 +1,9 @@
+# enter your key here
+news.api.keyGuardian: 368fb002-e3e5-4899-81ba-863d5e07c8b4
+news.api.keyNyTimes: gTO3d7H57Ggou8tFddx09KAAxALziVYT
+news.api.keyNation: pub_298957a866d6a4459a3e02de0e98c5f4d1df3
+
+server:
+  port: 1080
+
+
