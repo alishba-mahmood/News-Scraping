@@ -246,7 +246,9 @@ public class NewsService {
     /***************************************************************** NEWYORK TIMES NEWS *************************************************************************************/
     public List<NewsArticle> getNewsNy() {
         String apiUrl = "https://api.nytimes.com/svc/mostpopular/v2/viewed/1.json" + "?api-key=" + apikeyNyTimes;
+        System.out.println("service method called");
         NewsNYResponse response = restTemplate.getForObject(apiUrl, NewsNYResponse.class);
+        System.out.println("gotten response");
         List<NewsArticle> headlines = new ArrayList<>();
         if (response != null && response.getArticles() != null) {
             for (NewsNyTimes article : response.getArticles()) {
@@ -256,6 +258,7 @@ public class NewsService {
                 newsArticle.setUrl(newsNy.getPageUrl());
                 newsArticle.setTitle(newsNy.getTitle());
                 newsArticle.setUrlToImage(newsNy.getImage());
+                newsArticle.setPublishedAt(newsNy.getPublished_date());
 
                 headlines.add(newsArticle);
             }
@@ -354,5 +357,59 @@ public class NewsService {
         }
         return docs;
     }
+
+    /***************************************************************** NATION NEWS *************************************************************************************/
+
+
+
+//
+//
+//    public List<NewsArticle> getNationNewsHeadlines(String country, String language) throws InterruptedException {
+////        &category=sports
+////        country=pk&
+//        String apiUrl = "https://newsdata.io/api/1/news?domainurl=nation.com.pk&category=top&apikey=" + nation_apiKey;
+//        // Make an HTTP GET request to the News API
+//        NewsApiResponse response = restTemplate.getForObject(apiUrl, NewsApiResponse.class);
+//        String nextPage = response.getNextPage();
+//        List<NewsArticle> headlines = new ArrayList<>();
+//        if (response != null && response.getArticles() != null) {
+//            for (NewsArticle article : response.getArticles()) {
+//                NewsArticle newsArticle = new NewsArticle(article.getTitle(), article.getLink(), article.getImage_url(), article.getPublishedDate());
+//                headlines.add(newsArticle);
+//            }
+//        }
+//        if(nextPage==null){
+//            return headlines;
+//        }
+//        else {
+//            apiUrl = "https://newsdata.io/api/1/news?domainurl=nation.com.pk&apikey=" + nation_apiKey + "&page=" + nextPage;
+//            try {
+//                response = restTemplate.getForObject(apiUrl, NewsApiResponse.class);
+//                System.out.println("in try");
+//                if (response != null && response.getArticles() != null) {
+//                    for (NewsArticle article : response.getArticles()) {
+//                        NewsArticle newsArticle = new NewsArticle(article.getTitle(), article.getLink(), article.getImage_url(), article.getPublishedDate());
+//                        headlines.add(newsArticle);
+//                    }
+//                }
+//            } catch (HttpClientErrorException.TooManyRequests e) {
+//                // Handle rate limit exceeded error
+//                // Extract rate limit headers from e.getResponseHeaders() and wait accordingly
+//                int retryAfterSeconds = 10;
+//                Thread.sleep(retryAfterSeconds * 1000);
+//                System.out.println("in catch");
+//
+//                response = restTemplate.getForObject(apiUrl, NewsApiResponse.class);
+//                if (response != null && response.getArticles() != null) {
+//                    for (NewsArticle article : response.getArticles()) {
+//                        NewsArticle newsArticle = new NewsArticle(article.getTitle(), article.getLink(), article.getImage_url(), article.getPublishedDate());
+//                        headlines.add(newsArticle);
+//                    }
+//                }
+//            }
+//        }
+//
+//        return headlines;
+//    }
 
 }

@@ -15,6 +15,8 @@ public class NewsNyTimes {
     private List<Media> media;
     private String image;
 
+    public NewsNyTimes(){}
+
     public NewsNyTimes(String title, String pageUrl, String img, String published_date) {
         this.title = title;
         this.pageUrl = pageUrl;
